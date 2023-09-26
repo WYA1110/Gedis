@@ -9,17 +9,20 @@
 */
 package protocol
 
-// 常量定义RESP中固定的报文值（开头除了以下几种没别的可能了）
-const (
-	CRLF              = "\r\n"
-	redisArray        = "*"
-	redisNum          = ":"
-	redisString       = "$"
-	redisError        = "-"
-	redisSampleString = "+"
-)
+import "errors"
 
-// 接受传进来的resp数据
-func Accept() {
-
+// 处理resp协议响应
+func ByteToInt(buf []byte) (int, error) {
+	//读取传进来的参数
+	var sum int
+	//x是
+	x := 0
+	//i等于
+	for i := len(buf) - 1; i >= 0; i-- {
+		if buf[i] < '0' || buf[i] > '9' {
+			return 0, errors.New("toNumberError")
+		}
+		sum += int(buf[i]-'0') * x
+	}
+	return sum, nil
 }

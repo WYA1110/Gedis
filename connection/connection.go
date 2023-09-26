@@ -10,31 +10,42 @@
 package connection
 
 import (
+	"Gedis/protocol"
 	"bufio"
 	"fmt"
 	"net"
 )
 
 // 定义所有接受的数据是同一种类型
-type Message struct {
+type RedisInfo struct {
 	//存储redis服务端信息
-	Address string
+	address string
 	//存储连接
-	Conn net.Conn
+	conn net.Conn
 	//读取链接
-	Reader  *bufio.Reader
-	BufRead []string
+	reader  *bufio.Reader
+	bufRead []string
 }
 
-func Client(address string, password string, port int) (client Message, err error) {
+// 常量定义RESP中固定的报文值（开头除了以下几种没别的可能了）
+const (
+	CRLF              = "\r\n"
+	redisArray        = "*"
+	redisNum          = ":"
+	redisString       = "$"
+	redisError        = "-"
+	redisSampleString = "+"
+)
+
+func Client(address string, password string, port int) (client RedisInfo, err error) {
 	//1. 链接redis
 	fmt.Printf("connecting Redis server....\naddress:%s \npassword:%s \n port:%d \n", address, password, port)
-	client.Address = address
-	client.Conn, err = net.Dial("tcp", client.Address)
+	client.address = address
+	client.conn, err = net.Dial("tcp", client.address)
 	if err != nil {
 		fmt.Printf("failed to create connection ", err)
 	}
-	client.Reader = bufio.NewReader(client.Conn)
+	client.reader = bufio.NewReader(client.conn)
 	//2.redis设置
 	if password != "" {
 		//密码校验，不为空则err
@@ -46,10 +57,10 @@ func Client(address string, password string, port int) (client Message, err erro
 }
 
 // 发送数据
-func (client *Message) respWriter(buf []byte) (err error) {
+func (client *RedisInfo) respWriter(buf []byte) (err error) {
 	writenLine := 0
 	for writenLine < len(buf) {
-		n, err := client.Conn.Write(buf[writenLine:])
+		n, err := client.conn.Write(buf[writenLine:])
 		if err != nil {
 			return err
 		}
@@ -59,27 +70,36 @@ func (client *Message) respWriter(buf []byte) (err error) {
 }
 
 // 获取数据，返回获取的resp字符串,并且按照读取类型不同分派出去
-func (client *Message) respReader() (buf []string, err error) {
+func (client *RedisInfo) respReader() (buf []string, err error) {
 	//从输入流中读取数据
-	newLine, _, _ := client.Reader.ReadLine()
+	newLine, _, _ := client.reader.ReadLine()
 	//通过读取数据的第一个字符来判断类型
 	switch newLine[0] {
 	//数组类型，读取到数组类型的时候，目的是转换阅读型更好的字符串，数组格式的字符串发送来格式为
-	//
-	//case redisArray:
-	//	count,err:=byteToInt(newLine[1:])
-	//
-	//case redisNum:
-	//case redisString:
-	//case redisError:
-	//case redisSampleString:
+	case '*':
+		count, err := protocol.ByteToInt(newLine[1:])
+		if err != nil {
+			fmt.Println("数据初次转换错误")
+			return nil, err
+		}
+		return client.redisArrayResp(count)
+	case ':':
+
+	case '$':
+	case '-':
+	case '+':
 
 	}
 	return
 }
 
 // 数组格式数据接受，接受时为int数据，转换为字符串可阅读
-func (client *Message) resqArray(count int) (buf []string, err error) {
+func (client *RedisInfo) redisArrayResp(count int) (buf []string, err error) {
 
 	return
+}
+
+// 获取其他数据
+func (client *RedisInfo) redisSampleStringResp() {
+
 }
