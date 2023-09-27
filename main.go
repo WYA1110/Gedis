@@ -22,6 +22,6 @@ func main() {
 		fmt.Println("Failed to connect to Redis:", err)
 		return
 	}
-	defer result.conn.Close()
+	defer result.Conn.Close()
 	fmt.Println("success")
 }

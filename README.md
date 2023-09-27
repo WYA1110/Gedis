@@ -42,7 +42,7 @@ $9\r\nillumwang
 使用以 ":" 作为前缀，以CRLF作为结尾的字符串来表示整数，很多命令都会返回整数，如`INCR``LLEN``LPUSH`
 等命令
 ```
-127.0.0.1:6379> LPUSH info JintaoZhang MoeLove
+127.0.0.1:6379> LPUSH info illumwang MoeLove
 :2\r\n  # 服务端实际返回
 ---
 (integer) 2  # redis-cli 客户端显示
@@ -88,6 +88,7 @@ $8\r\nillumwang\r\n
 resp是基于TCP来实现的Redis通信协议，通过上面的内容我们来进一步拆分一下resp协议的具体实现
 因为上述*代表数组，即有多少组数据需要处理，图中为n。
 而$表示复杂字符串，即需要获取m个字符数据，不包含/r/n
+所以我们又面临了一个问题：如何计算字符的个数？
 ##### 如何拆解resp字符串
 若要拆解命令，则当我们获取命令时，报文$m代表要记录长度为m的数据（不包含\r\n）
 ### 四、客户端开发思路
@@ -99,3 +100,5 @@ resp是基于TCP来实现的Redis通信协议，通过上面的内容我们来�
 1. 通信模块：connection类，负责链接redis服务端，从服务端接受resp数据，然后将接受的数据发送给数据处理模块
 2. 数据处理模块：接受通信传来的resp数据转化为数字
 3. api模块：定义调用服务端数据的api
+### 致谢
+感谢掘金社区山水怡情对redis协议的分析https://pdudo.gitee.io/

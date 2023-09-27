@@ -8,3 +8,10 @@
 *
 */
 package api
+
+func Set(key string, value string) {
+
+}
+func Get(key string) {
+
+}
