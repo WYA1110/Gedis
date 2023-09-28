@@ -58,7 +58,18 @@ func TestRedisInfo_RespReader(t *testing.T) {
 	}
 }
 
-// 客户端写测试用例
-func TestRedisInfo_RespWriter(t *testing.T) {
-
+// set方法测试
+func TestRedisInfo_Set(t *testing.T) {
+	//初始化RedisInfo实例
+	redisClient := &RedisInfo{}
+	key := "test"
+	value := "illumwang"
+	result, err := redisClient.Set(key, value)
+	expectedResult := []string{"set", key, value}
+	if err != nil {
+		t.Errorf("Expected no error, but got error: %v", err)
+	}
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("Expected result %v, but got %v", expectedResult, result)
+	}
 }

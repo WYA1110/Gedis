@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 )
 
 // 定义所有接受的数据是同一种类型
@@ -31,9 +32,9 @@ type RedisInfo struct {
 // 常量定义RESP中固定的报文值（开头除了以下几种没别的可能了）
 const (
 	CRLF              = "\r\n"
-	redisArray        = '*'
+	RedisArray        = '*'
 	redisInt          = ':'
-	redisString       = '$'
+	RedisString       = '$'
 	redisError        = '-'
 	redisSampleString = '+'
 )
@@ -77,7 +78,7 @@ func (client *RedisInfo) RespReader() (buf []string, err error) {
 	//通过读取数据的第一个字符来判断类型
 	switch newLine[0] {
 	//数组类型，读取到数组类型的时候，目的是转换阅读型更好的字符串，数组格式的字符串发送来格式为'*'
-	case redisArray:
+	case RedisArray:
 		count, err := protocol.ByteToInt(newLine[1:])
 		if err != nil {
 			fmt.Println("数据初次转换错误")
@@ -91,7 +92,7 @@ func (client *RedisInfo) RespReader() (buf []string, err error) {
 		buf = append(buf, string(newLine[1:]))
 
 		//多行字符串，"$6\r\nfoobar\r\n",即返回一个6字符的字符串foobar，然后返回string
-	case redisString:
+	case RedisString:
 		//先判断返回元素有多少个
 		n, _ := protocol.ByteToInt(newLine[1:])
 		//创建新的切片,有n个元素
@@ -138,7 +139,7 @@ func (client *RedisInfo) redisSampleResp() (buf []string, err error) {
 		buf = append(buf, string(newReadLine[1:]))
 
 	//格式是字符串
-	case redisString:
+	case RedisString:
 		n, _ := protocol.ByteToInt(newReadLine[1:])
 		newBuf := make([]byte, n)
 		client.Reader.Read(newBuf)
@@ -157,10 +158,66 @@ func (client *RedisInfo) auth() {
 
 // 定义方法api
 func (client *RedisInfo) Set(key string, value string) ([]string, error) {
-	fmt.Printf("this is set method,key:%v,value:%v", key, value)
-	//第一步，链接客户端
-	return nil, nil
+	fmt.Printf("this is set method,key:%v,value:%v", key, value, "\n")
+	//第一步，准备传入的数值
+	var request []string
+	//set是置数进入服务端，所以需要拼接字符串，set命令，key和value的内容
+	request = append(request, "set")
+	request = append(request, key)
+	request = append(request, value)
+	//第二步，转换为字节数组准备写入
+	buf, err := ToResp(request)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("等待发送的报文", request)
+	//第三步，连接服务端写入
+	client.RespWriter(buf)
+	return client.RespReader()
 }
-func Get(key string) {
 
+// get方法是通过key找到value，将resp字符串转变为可读性高的string
+// 127.0.0.1:6379> get site
+// $6\r\
+// ljheee\r\n
+// ---
+// "ljheee"
+func (client *RedisInfo) Get(key string) (value []string, err error) {
+	fmt.Printf("Get操作,key :%s", key)
+	var response []string
+	response = append(response, "get")
+	response = append(response, key)
+	buf, _ := ToResp(response)
+	fmt.Println("待发送报文:", response)
+	client.RespWriter(buf)
+	return client.RespReader()
+}
+
+// 由普通字符串转变为resp字符串
+func ToResp(writeString []string) (resp []byte, err error) {
+	//第一步,判断字符长度
+	arrayLen := len(writeString)
+	if arrayLen == 0 {
+		return
+	}
+	//字符串格式转化,拼接crlf等,到这一步，拼接的是set的方法的头部
+	//SET key value #对应的resp通信协议串
+	//*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n
+	resp = append(resp, RedisArray)
+	resp = append(resp, []byte(strconv.Itoa(arrayLen))...)
+	resp = append(resp, []byte(CRLF)...)
+	//第二部格式转化，要转化resp字符串的内容
+	//v是一个临时变量，有几个元素打印几次
+	for _, v := range writeString {
+		//第一步绝对是string格式
+		resp = append(resp, RedisString)
+		vLen := len(v)
+		//拼元素长度
+		resp = append(resp, []byte(strconv.Itoa(vLen))...)
+		resp = append(resp, []byte(CRLF)...)
+		//拼内容
+		resp = append(resp, []byte(v)...)
+		resp = append(resp, []byte(CRLF)...)
+	}
+	return
 }
