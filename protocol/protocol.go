@@ -9,7 +9,9 @@
 */
 package protocol
 
-import "errors"
+import (
+	"errors"
+)
 
 // 处理resp协议响应,计算传入的数组元素的个数
 func ByteToInt(buf []byte) (int, error) {

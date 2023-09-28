@@ -9,19 +9,10 @@
 */
 package main
 
-import (
-	"Gedis/connection"
-	"fmt"
-)
-
 func main() {
-	//开启client端口
-	address := "127.0.0.1:6379"
-	result, err := connection.Client(address, "", 0)
-	if err != nil {
-		fmt.Println("Failed to connect to Redis:", err)
-		return
-	}
-	defer result.Conn.Close()
-	fmt.Println("success")
+	//创建测试RedisInfo实例
+	//client := redisClient.RedisInfo{
+	//	Reader: nil,
+	//}
+
 }

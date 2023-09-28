@@ -7,7 +7,7 @@
 
 *
 */
-package connection
+package redisClient
 
 import (
 	"Gedis/protocol"
@@ -24,7 +24,7 @@ type RedisInfo struct {
 	//存储连接
 	Conn net.Conn
 	//读取链接
-	reader  *bufio.Reader
+	Reader  *bufio.Reader
 	bufRead []string
 }
 
@@ -32,7 +32,7 @@ type RedisInfo struct {
 const (
 	CRLF              = "\r\n"
 	redisArray        = '*'
-	redisNum          = ':'
+	redisInt          = ':'
 	redisString       = '$'
 	redisError        = '-'
 	redisSampleString = '+'
@@ -46,7 +46,7 @@ func Client(address string, password string, index int) (client RedisInfo, err e
 	if err != nil {
 		return
 	}
-	client.reader = bufio.NewReader(client.Conn)
+	client.Reader = bufio.NewReader(client.Conn)
 	//2.redis设置
 	if password != "" {
 		//密码校验，不为空则err
@@ -58,7 +58,7 @@ func Client(address string, password string, index int) (client RedisInfo, err e
 }
 
 // 发送数据
-func (client *RedisInfo) respWriter(buf []byte) (err error) {
+func (client *RedisInfo) RespWriter(buf []byte) (err error) {
 	writenLine := 0
 	for writenLine < len(buf) {
 		n, err := client.Conn.Write(buf[writenLine:])
@@ -71,12 +71,12 @@ func (client *RedisInfo) respWriter(buf []byte) (err error) {
 }
 
 // 获取数据，返回获取的resp字符串,并且按照读取类型不同分派出去
-func (client *RedisInfo) respReader() (buf []string, err error) {
+func (client *RedisInfo) RespReader() (buf []string, err error) {
 	//从输入流中读取数据
-	newLine, _, _ := client.reader.ReadLine()
+	newLine, _, _ := client.Reader.ReadLine()
 	//通过读取数据的第一个字符来判断类型
 	switch newLine[0] {
-	//数组类型，读取到数组类型的时候，目的是转换阅读型更好的字符串，数组格式的字符串发送来格式为
+	//数组类型，读取到数组类型的时候，目的是转换阅读型更好的字符串，数组格式的字符串发送来格式为'*'
 	case redisArray:
 		count, err := protocol.ByteToInt(newLine[1:])
 		if err != nil {
@@ -86,7 +86,7 @@ func (client *RedisInfo) respReader() (buf []string, err error) {
 		return client.redisArrayResp(count)
 
 		//整数类型，返回值如：“:4\r\n”
-	case redisNum:
+	case redisInt:
 		//去掉冒号和\r\n
 		buf = append(buf, string(newLine[1:]))
 
@@ -97,11 +97,11 @@ func (client *RedisInfo) respReader() (buf []string, err error) {
 		//创建新的切片,有n个元素
 		newSlice := make([]byte, n)
 		//在client.reader中读取newSlice的内容，并转换为string
-		client.reader.Read(newSlice)
+		client.Reader.Read(newSlice)
 		buf = append(buf, string(newSlice))
 		//读取结尾的回车换行符号，表示多行字符串结束
 		crlf := make([]byte, 2)
-		client.reader.Read(crlf)
+		client.Reader.Read(crlf)
 		return
 
 		//错误信息，返回值"-ERR unknown command 'illumwang'\r\n",客户端显示“(error) ERR unknown command 'illumwang' ”
@@ -131,19 +131,20 @@ func (client *RedisInfo) redisSampleResp() (buf []string, err error) {
 	//这个方法获取数据获取的是几乎所有数据，所以我们首先要去读出来
 	//ReadLine源码注释为：The text returned from ReadLine does not include the line end ("\r\n" or "\n").
 	//所以readline是从reader中读取不包含行尾crlf的数据
-	newReadLine, _, _ := client.reader.ReadLine()
+	newReadLine, _, _ := client.Reader.ReadLine()
 	switch newReadLine[0] {
 	//格式是整数
-	case redisNum:
+	case redisInt:
 		buf = append(buf, string(newReadLine[1:]))
+
 	//格式是字符串
 	case redisString:
 		n, _ := protocol.ByteToInt(newReadLine[1:])
 		newBuf := make([]byte, n)
-		client.reader.Read(newBuf)
+		client.Reader.Read(newBuf)
 		buf = append(buf, string(newBuf))
 		crlf := make([]byte, 2)
-		client.reader.Read(crlf)
+		client.Reader.Read(crlf)
 	}
 	return
 }
@@ -151,5 +152,15 @@ func (client *RedisInfo) Run() {
 
 }
 func (client *RedisInfo) auth() {
+
+}
+
+// 定义方法api
+func (client *RedisInfo) Set(key string, value string) ([]string, error) {
+	fmt.Printf("this is set method,key:%v,value:%v", key, value)
+	//第一步，链接客户端
+	return nil, nil
+}
+func Get(key string) {
 
 }
